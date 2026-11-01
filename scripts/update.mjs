@@ -11,17 +11,17 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; value-compass)' };
 async function get(url, text) { const r = await fetch(url, { headers: UA }); if (!r.ok) throw new Error(r.status + ' ' + url.split('?')[0]); return text ? r.text() : r.json(); }
 const rd = v => +(v == null ? NaN : v).toFixed(v > 10 ? 2 : 4);
 
-async function prices(sym) {
+export async function prices(sym) {
   const d = await get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=5y&interval=1d`);
   const r = d.chart.result[0], q = r.indicators.quote[0];
   let cur = r.meta.currency, k = 1; if (cur === 'GBp') { cur = 'GBP'; k = .01; }
-  const bars = [];
+  const bars = [], vol = [];
   r.timestamp.forEach((t, i) => { const c = q.close[i]; if (c == null) return; const o = q.open[i] ?? c, h = q.high[i] ?? Math.max(o, c), l = q.low[i] ?? Math.min(o, c);
-    bars.push([Math.floor(t / 86400), rd(o * k), rd(h * k), rd(l * k), rd(c * k)]); });
+    bars.push([Math.floor(t / 86400), rd(o * k), rd(h * k), rd(l * k), rd(c * k)]); vol.push(q.volume?.[i] || 0); });
   if (bars.length < 250) throw new Error('too little history for ' + sym);
-  return { bars, cur };
+  return { bars, cur, vol, name: r.meta.longName || r.meta.shortName || sym };
 }
-async function fundamentals(sym) {
+export async function fundamentals(sym) {
   const a = old[sym]?.f; if (a && Date.now() - a.at < 20 * 36e5) return a; // cache: FMP free plan = 250 calls/day
   const u = e => `https://financialmodelingprep.com/stable/${e}?symbol=${sym}&apikey=${KEY}`;
   const [k] = await get(u('key-metrics-ttm')), [r] = await get(u('ratios-ttm'));
