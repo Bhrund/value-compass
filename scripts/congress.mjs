@@ -45,7 +45,7 @@ export function screen(sym, who, P, F) { // returns {ok,...} or {reject}
 }
 const FC = { ...(prev?.fc || {}) }; let fmpCalls = 0; const MAXF = 120; // FMP free plan: 250 calls a day, shared with the main job
 async function fund(sym) { // fundamentals cached for 7 days, with a daily call budget
-  const c = FC[sym]; if (c && Date.now() - c.at < 7 * 864e5) return c; if (fmpCalls >= MAXF) return null;
+  const c = FC[sym]; if (c && Date.now() - c.at < 7 * 864e5) return c;
   const t0 = Date.now(), F = await fundamentals(sym); if (F.at >= t0) { fmpCalls += 2; await sleep(300); } FC[sym] = F; return F;
 }
 export async function main() {

@@ -21,28 +21,45 @@ export async function prices(sym) {
   if (bars.length < 250) throw new Error('too little history for ' + sym);
   return { bars, cur, vol, name: r.meta.longName || r.meta.shortName || sym };
 }
-export async function fundamentals(sym) {
-  const a = old[sym]?.f; if (a && Date.now() - a.at < 20 * 36e5) return a; // cache: FMP free plan = 250 calls/day
+const FH = process.env.FINNHUB_KEY; let fmpCalls = 0, fmpDown = false;
+const num = (...v) => { for (const x of v) if (Number.isFinite(x)) return x; return NaN; };
+async function viaFmp(sym) {
   const u = e => `https://financialmodelingprep.com/stable/${e}?symbol=${sym}&apikey=${KEY}`;
-  const [k] = await get(u('key-metrics-ttm')), [r] = await get(u('ratios-ttm'));
-  const n = (...v) => { for (const x of v) if (Number.isFinite(x)) return x; return NaN; };
-  return { at: Date.now(), roic: n(k.returnOnInvestedCapitalTTM) * 100, fcf: n(k.freeCashFlowYieldTTM) * 100, ey: n(k.earningsYieldTTM) * 100,
-    lev: n(k.netDebtToEBITDATTM, k.netDebtToEbitdaTTM), dy: n(r.dividendYieldTTM, 0) * 100 };
+  fmpCalls += 2; const [k] = await get(u('key-metrics-ttm')), [r] = await get(u('ratios-ttm'));
+  return { at: Date.now(), src: 'fmp', lt: 'Net debt / EBITDA', roic: num(k.returnOnInvestedCapitalTTM) * 100, fcf: num(k.freeCashFlowYieldTTM) * 100, ey: num(k.earningsYieldTTM) * 100,
+    lev: num(k.netDebtToEBITDATTM, k.netDebtToEbitdaTTM), dy: num(r.dividendYieldTTM, 0) * 100 };
+}
+async function viaFinnhub(sym) { // second free source: 60 calls a minute, no daily cap (US stocks)
+  const d = await get(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(sym)}&metric=all&token=${FH}`); await sleep(1100);
+  const m = d.metric || {}; if (!Object.keys(m).length) throw new Error('no data for ' + sym);
+  const pe = num(m.peTTM, m.peNormalizedAnnual), pf = num(m.pfcfShareTTM, m.pfcfShareAnnual);
+  return { at: Date.now(), src: 'finnhub', lt: 'Debt / equity (stand-in)', roic: num(m.roiTTM, m.roiAnnual, m.roicTTM), fcf: pf > 0 ? 100 / pf : NaN, ey: pe > 0 ? 100 / pe : NaN,
+    lev: num(m['totalDebt/totalEquityQuarterly'], m['totalDebt/totalEquityAnnual']), dy: num(m.dividendYieldIndicatedAnnual, 0) };
+}
+export async function fundamentals(sym) {
+  const a = old[sym]?.f; if (a && Date.now() - a.at < 20 * 36e5) return a; // cache
+  if (KEY && !fmpDown && fmpCalls < 236) {
+    try { const f = await viaFmp(sym); if ([f.roic, f.fcf, f.ey, f.lev].every(Number.isFinite)) return f; console.warn('FMP incomplete for', sym); }
+    catch (e) { if (/429/.test(e.message)) fmpDown = true; console.warn('FMP', sym, e.message, FH ? '-> trying Finnhub' : ''); }
+  }
+  if (FH) return viaFinnhub(sym);
+  throw new Error('no fundamentals source available for ' + sym);
 }
 function scoreStock(f, price) {
   if (![f.roic, f.fcf, f.ey, f.lev].every(Number.isFinite) || f.fcf <= 0 || f.ey <= 0) return null;
-  const pe = 100 / f.ey, eg = Math.max(2, Math.min(8, f.roic * .35)); // growth assumed: 35% reinvestment x ROIC, capped 2-8%
-  let f0 = price * f.fcf / 100, iv = 0; for (let y = 1; y <= 10; y++) iv += f0 * (1 + eg / 100) ** y / 1.09 ** y;
-  iv += f0 * (1 + eg / 100) ** 10 * 1.025 / (.09 - .025) / 1.09 ** 10;
-  return { pe, roic: f.roic, fcf: f.fcf, lev: f.lev, eg, q: cl((f.roic - 8) / 20), v: cl((f.fcf - 2) / 7) * .5 + cl((30 - pe) / 22) * .5, s: cl(1 - f.lev / 4), g: cl((eg - 2) / 12), exp: f.fcf + eg * .8, iv, mt: .25 };
+  const pe = 100 / f.ey, eg = Math.max(2, Math.min(f.roic > 25 ? 10 : 8, f.roic * .35)); // growth assumed: 35% reinvestment x ROIC, capped 2-8%
+  let f0 = price * f.fcf / 100, iv = 0; for (let y = 1; y <= 10; y++) iv += f0 * (1 + eg / 100) ** y / 1.08 ** y;
+  iv += f0 * (1 + eg / 100) ** 10 * 1.025 / (.08 - .025) / 1.08 ** 10;
+  const mt = f.roic >= 20 && f.lev <= 1.5 ? .12 : f.roic >= 12 ? .20 : .25; // margin of safety scaled to business quality
+  return { pe, roic: f.roic, fcf: f.fcf, lev: f.lev, lt: f.lt || 'Net debt / EBITDA', eg, q: cl((f.roic - 8) / 20), v: cl((f.fcf - 2) / 7) * .5 + cl((30 - pe) / 22) * .5, s: cl(1 - f.lev / 4), g: cl((eg - 2) / 12), exp: f.fcf + eg * .8, iv, mt };
 }
-function scoreEtf(bars) {
+function scoreEtf(bars, sec) {
   const c = bars.map(b => b[4]), n = c.length, cagr = ((c[n - 1] / c[0]) ** (252 / n) - 1) * 100;
   let pk = 0, dd = 0; for (const x of c) { pk = Math.max(pk, x); dd = Math.max(dd, (pk - x) / pk * 100); }
   const w = c.slice(-504), vp = w.filter(x => x <= c[n - 1]).length / w.length * 100;
   let sx = 0, sy = 0, sxy = 0, sxx = 0; c.forEach((x, i) => { const y = Math.log(x); sx += i; sy += y; sxy += i * y; sxx += i * i; });
   const b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a0 = (sy - b * sx) / n, iv = Math.exp(a0 + b * (n - 1)); // fair value = 5y log-linear trend
-  return { cagr, dd, vp, q: cl((cagr - 3) / 9), v: 1 - vp / 100, s: cl(1 - dd / 50), g: cl((cagr - 3) / 9), exp: cagr * .8, iv, mt: .10 };
+  return { cagr, dd, vp, q: cl((cagr - 3) / 9), v: 1 - vp / 100, s: cl(1 - dd / 50), g: cl((cagr - 3) / 9), exp: cagr * .8, iv, mt: sec === 'Equity broad' ? 0 : .10 };
 }
 async function fred(id) { const t = await get(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}`, true);
   return t.trim().split('\n').slice(1).map(l => l.split(',')).filter(x => x[1] && x[1] !== '.').map(x => ({ d: x[0], v: +x[1] })); }
@@ -65,7 +82,7 @@ export async function main() {
       const a = { t: u.t, n: u.n, sec: u.sec, etf: !!u.etf, cur, bars, bond: !!u.bond, scored: false };
       const price = bars.at(-1)[4];
       let m = null;
-      if (u.etf) { m = scoreEtf(bars); a.acc = u.acc; a.dy = u.dy; }
+      if (u.etf) { m = scoreEtf(bars, u.sec); a.acc = u.acc; a.dy = u.dy; }
       else if (u.fmp && KEY) { try { const f = await fundamentals(u.fmp); a.f = f; m = scoreStock(f, price); a.dy = Number.isFinite(f.dy) ? f.dy : null; a.acc = a.dy === 0; if (!old[u.fmp]?.f || old[u.fmp].f.at !== f.at) await sleep(300); } catch (e) { console.warn('fundamentals FAILED', u.t, e.message); } }
       if (m) { Object.assign(a, m, { scored: true, buy: m.iv * (1 - m.mt) }); a.entry = price <= a.buy; }
       assets.push(a);
