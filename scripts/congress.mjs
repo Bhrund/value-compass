@@ -1,4 +1,4 @@
-// Stocks below the average purchase price of at least two tracked politicians, screened for "sentiment dip, not structural decline".
+// Stocks within 30% above (or below) the average purchase price of at least two tracked politicians, screened for "sentiment dip, not structural decline".
 import fs from 'node:fs';
 import { prices, fundamentals } from './update.mjs';
 const CFG = JSON.parse(fs.readFileSync('config.json', 'utf8')).congress;
@@ -21,25 +21,27 @@ async function trades(member) { // field names are matched loosely because the s
     .map(o => ({ who: member, ticker: String(pick(o, 'ticker', 'symbol', 'assetTicker') || '').toUpperCase(),
       type: String(pick(o, 'transactionType', 'transaction_type', 'type') || '').toLowerCase(), date: String(pick(o, 'transactionDate', 'transaction_date', 'date') || '').slice(0, 10) }));
 }
-export function screen(sym, who, P, F) { // returns {ok, why[]} or {reject}
-  const { bars, vol } = P, n = bars.length, last = bars[n - 1][4], below = [], others = [];
+export function screen(sym, who, P, F) { // returns {ok,...} or {reject}
+  const { bars, vol } = P, n = bars.length, last = bars[n - 1][4], entries = [];
   for (const [name, dates] of Object.entries(who)) {
     const px = dates.map(d => { const day = Math.floor(Date.parse(d) / 864e5), b = bars.find(x => x[0] >= day); return b ? b[4] : null; }).filter(Boolean);
-    if (!px.length) continue; const entry = px.reduce((a, b) => a + b) / px.length;
-    (entry > last ? below : others).push({ who: name, entry: rd(entry), buys: dates.length, first: dates.slice().sort()[0] });
+    if (px.length) entries.push({ who: name, entry: rd(px.reduce((a, b) => a + b) / px.length), buys: dates.length, first: dates.slice().sort()[0] });
   }
-  if (below.length < (CFG.min || 2)) return { reject: 'too few politicians with an entry above the current price' };
+  if (entries.length < (CFG.min || 2)) return { reject: 'too few politicians with a price match' };
+  const avg = entries.reduce((a, b) => a + b.entry, 0) / entries.length, dist = (last / avg - 1) * 100;
+  if (dist > (CFG.maxAbove ?? 30)) return { reject: 'too far above the average entry' };
+  const band = dist <= 0 ? 'green' : dist <= 10 ? 'orange' : 'red';
   const hi = Math.max(...bars.slice(-252).map(b => b[2])), dd = (1 - last / hi) * 100;
-  if (dd < 12) return { reject: 'not down enough' }; if (dd > 45) return { reject: 'fell too far, likely structural' };
+  if (dd < (CFG.minDrop ?? 0)) return { reject: 'not down enough' }; if (dd > (CFG.maxDrop ?? 45)) return { reject: 'fell too far, likely structural' };
   const dv = vol.slice(-60).reduce((a, b, i) => a + b * bars[n - 60 + i][4], 0) / 60; if (dv < 5e7) return { reject: 'too illiquid' };
   const cagr3 = n > 756 ? ((last / bars[n - 756][4]) ** (1 / 3) - 1) * 100 : null; if (cagr3 != null && cagr3 < -5) return { reject: 'multi-year downtrend' };
-  const checked = !!F; if (F && (!(F.fcf > 0) || !(F.roic >= 8) || !(F.lev <= 3))) return { reject: 'weak fundamentals' };
-  const avg = below.reduce((a, b) => a + b.entry, 0) / below.length, disc = (avg / last - 1) * 100;
-  const why = [`${below.length} tracked politicians (${below.map(b => b.who).join(', ')}) bought it recently at an average of ${rd(avg)}; it now trades ${disc.toFixed(0)}% below that.`,
-    `It is ${dd.toFixed(0)}% below its 52-week high: a pullback, not a collapse (the screen drops falls above 45%).`,
+  const checked = !!F; if (F && (!(F.fcf > 0) || !(F.roic >= (CFG.minRoic ?? 8)) || !(F.lev <= (CFG.maxLev ?? 3)))) return { reject: 'weak fundamentals' };
+  const why = [`${entries.length} tracked politicians (${entries.map(b => b.who).join(', ')}) bought it recently at an average of ${rd(avg)}; it now trades ${Math.abs(dist).toFixed(0)}% ${dist <= 0 ? 'below' : 'above'} that.`,
+    dd < 5 ? 'It is close to its 52-week high.' : `It is ${dd.toFixed(0)}% below its 52-week high: a pullback, not a collapse (the screen drops falls above ${CFG.maxDrop ?? 45}%).`,
     checked ? `Fundamentals still look intact: return on invested capital ${F.roic.toFixed(0)}%, free cash flow yield ${F.fcf.toFixed(1)}%, net debt ${F.lev.toFixed(1)}× EBITDA.` : 'Fundamentals could not be checked on the free plan, so this is less certain.',
     cagr3 != null ? `Over three years it still returned ${cagr3.toFixed(1)}% a year, which fits a sentiment dip rather than a long decline.` : 'Less than three years of history.'];
-  return { ok: true, last, below, others: others.map(o => o.who), dd, disc, cagr3, checked, F, why, key: below.length * 100 + Math.min(disc, 50) + (checked ? 20 : 0) + (F ? Math.min(F.roic, 30) / 3 : 0) };
+  const key = (band === 'green' ? 3000 : band === 'orange' ? 2000 : 1000) + entries.length * 100 + (30 - Math.max(-30, Math.min(30, dist))) + (checked ? 20 : 0) + (F ? Math.min(F.roic, 30) / 3 : 0);
+  return { ok: true, last, entries, avg, dist, band, dd, cagr3, checked, F, why, key };
 }
 export async function main() {
   const rows = [], used = {};
@@ -52,7 +54,7 @@ export async function main() {
       const P = await prices(t.replace('.', '-')); await sleep(250); let F = null;
       if (FMP) { try { F = await fundamentals(t.replace('.', '-')); if (![F.roic, F.fcf, F.lev].every(Number.isFinite)) F = null; } catch (e) { F = null; } }
       const r = screen(t, who, P, F); if (!r.ok) { rej[r.reject] = (rej[r.reject] || 0) + 1; continue; }
-      out.push({ t, n: P.name, cur: P.cur, price: r.last, below: r.below, others: r.others, dd: r.dd, cagr3: r.cagr3, checked: r.checked, why: r.why, key: r.key, bars: P.bars.slice(-260) });
+      out.push({ t, n: P.name, cur: P.cur, price: r.last, entries: r.entries, avg: rd(r.avg), dist: +r.dist.toFixed(1), band: r.band, dd: r.dd, cagr3: r.cagr3, checked: r.checked, why: r.why, key: r.key, bars: P.bars.slice(-260) });
     } catch (e) { rej['no price data'] = (rej['no price data'] || 0) + 1; console.warn('price FAILED', t, e.message); }
   }
   out.sort((a, b) => b.key - a.key);
@@ -60,7 +62,7 @@ export async function main() {
   const top = out.slice(0, 20), seen = new Set((prev?.list || []).map(x => x.t));
   const fresh = prev ? top.filter(x => !seen.has(x.t)) : []; // no alerts on the very first run
   if (TOPIC) for (const x of fresh) await fetch('https://ntfy.sh/' + TOPIC, { method: 'POST', headers: { Title: `${x.t} is new on the Congress list`, Tags: 'classical_building' },
-    body: `${x.n}: ${x.cur} ${x.price} is below the average entry of ${x.below.length} tracked politicians (${x.below.map(b => b.who).join(', ')}).` });
+    body: `${x.n}: ${x.cur} ${x.price} is ${x.dist <= 0 ? 'at or below' : x.dist.toFixed(0) + '% above'} the average entry of ${x.entries.length} tracked politicians (${x.entries.map(b => b.who).join(', ')}).` });
   console.log(`new on list: ${fresh.map(x => x.t).join(',') || 'none'}`);
   console.log(`congress: ${rows.length} trades, ${cands.length} candidates, ${Math.min(out.length, 20)} listed, rejected`, JSON.stringify(rej));
 }
