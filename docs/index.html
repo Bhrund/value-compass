@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Value Compass</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><meta name="theme-color" content="#0e1116">
+<style>
+:root{--bg:#f6f7f9;--cd:#fff;--tx:#14181f;--mut:#6b7280;--ln:#e5e7eb;--ac:#1d4ed8;--up:#15803d;--dn:#b91c1c;--wn:#b45309;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1116;--cd:#171b22;--tx:#e8eaed;--mut:#98a2b3;--ln:#2a303a;--ac:#6ea0ff;--up:#34d399;--dn:#f87171;--wn:#fbbf24;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1116;--cd:#171b22;--tx:#e8eaed;--mut:#98a2b3;--ln:#2a303a;--ac:#6ea0ff;--up:#34d399;--dn:#f87171;--wn:#fbbf24;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:720px;margin:auto}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding:10px 14px 0;border-bottom:1px solid var(--ln)}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--mut);font-size:12px}
+.demo{background:var(--ln);color:var(--mut);font-size:11px;padding:4px 14px;text-align:center}
+nav{display:flex;gap:4px;margin-top:8px}nav button{flex:1;padding:9px 0;border:0;background:none;color:var(--mut);font:600 13px system-ui;border-bottom:2px solid transparent}
+nav button.on{color:var(--ac);border-color:var(--ac)}
+#ptr{height:0;overflow:hidden;text-align:center;color:var(--mut);font-size:12px;transition:height .15s}
+.row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--cd);border-bottom:1px solid var(--ln)}
+.rk{width:22px;color:var(--mut);font-size:12px}.mid{flex:1;min-width:0;display:flex;flex-direction:column}.mid span{color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt{text-align:right;display:flex;flex-direction:column;font-size:12px}.rt b{font-size:15px}
+.sc{width:38px;height:38px;border-radius:50%;border:2px solid var(--ac);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.g{color:var(--up)}.r{color:var(--dn)}.m{color:var(--mut)}
+.card{background:var(--cd);margin:10px 14px;padding:12px;border-radius:12px;border:1px solid var(--ln)}
+#det{position:fixed;inset:0;background:var(--bg);overflow-y:auto;z-index:20;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);display:none}
+#det .top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px}
+.x{border:1px solid var(--ln);background:var(--cd);color:var(--tx);border-radius:8px;padding:6px 12px;font-size:14px}
+#cv{width:100%;height:280px;display:block;touch-action:none;background:var(--cd)}
+.tf{display:flex;justify-content:space-around;background:var(--cd);padding:6px 0;border-bottom:1px solid var(--ln)}
+.tf button{border:0;background:none;color:var(--mut);padding:6px 10px;border-radius:6px;font-size:13px}.tf button.on{background:var(--ac);color:#fff}
+.bar{height:6px;background:var(--ln);border-radius:3px;margin:3px 0 8px}.bar i{display:block;height:100%;background:var(--ac);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:13px}td{padding:5px 0;border-bottom:1px solid var(--ln)}td:last-child{text-align:right;font-weight:600}
+.al{width:100%;padding:11px;border-radius:10px;border:1px solid var(--ac);background:none;color:var(--ac);font:600 14px system-ui}.al.on{background:var(--ac);color:#fff}
+#toast{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));background:var(--ac);color:#fff;padding:10px 14px;border-radius:10px;z-index:30;display:none;font-size:13px}
+small{color:var(--mut)}
+</style></head><body>
+<div class="demo">End-of-day data from free sources. Not investment advice.</div>
+<header><h1>Value Compass</h1><div class="sub" id="upd">Loading…</div>
+<nav><button data-v="o" class="on">Opportunities</button><button data-v="w">Watchlist</button><button data-v="x">Excluded</button><button data-v="m">Macro</button></nav></header>
+<div id="ptr">↓ Pull to refresh</div>
+<main id="list"></main>
+<div id="det"></div><div id="toast"></div>
+<script>
+const SEC={Energy:.85,Materials:.75,Commodities:.95,'Real assets':.7,Financials:.5,Staples:.65,'Health Care':.6,Technology:.4,Industrials:.55,Discretionary:.35,'Inflation bonds':.6,'Equity broad':.5};
+let M2=5.4,A=[],MAC={},META={};
+const cl=x=>Math.max(0,Math.min(1,x)),f=v=>v.toFixed(v<100?2:0),$=s=>document.querySelector(s);
+function agg(b,k){if(k==1)return b;const o=[];for(let i=0;i<b.length;i+=k){const s=b.slice(i,i+k);o.push({d:s[0].d,o:s[0].o,h:Math.max(...s.map(x=>x.h)),l:Math.min(...s.map(x=>x.l)),c:s[s.length-1].c})}return o}
+let OPP=[],WAT=[],EXC=[],UNS=[],DIV_MAX=2,view='o',C=null;
+async function load(){const r=await fetch('data.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();
+ META=d;MAC=d.macro||{};if(Number.isFinite(MAC.m2yoy))M2=MAC.m2yoy;
+ A=d.assets.map(a=>{a.bars=a.bars.map(b=>({d:new Date(b[0]*864e5),o:b[1],h:b[2],l:b[3],c:b[4]}));
+  if(a.scored){a.net=a.exp-(a.dy||0)*.3-(a.bond?a.exp*.3:0);a.mac=SEC[a.sec]*.6+cl((a.net-M2)/8)*.4}return a})}
+const AL=(()=>{try{return new Set(JSON.parse(localStorage.getItem('al')||'[]'))}catch(e){return new Set()}})();
+const saveAL=()=>{try{localStorage.setItem('al',JSON.stringify([...AL]))}catch(e){}};
+/* ---- challenge layer: a backend fills EXT with 13F holders, analyst targets, insider flow, X sentiment ---- */
+const EXT={};
+function chal(a){const e=EXT[a.t];if(!e)return{pen:0,fl:['Not yet challenged: needs the research feed']};const fl=[];let pen=0;if(e.target&&e.target<a.price){pen+=5;fl.push('Analyst target is below the price')}if(e.holders===0){pen+=3;fl.push('No tracked superinvestor holds it')}if(e.insider<0){pen+=2;fl.push('Net insider selling')}if(e.x<-.3){pen+=1;fl.push('Negative X sentiment (low weight)')}return{pen,fl}}
+function score(){A.forEach(a=>{const b=a.bars[a.bars.length-1];a.price=b.c;if(!a.scored)return;a.mos=1-a.price/a.iv;
+ a.L={Buffett:.4*a.q+.3*a.v+.2*a.s+.1*a.g,Graham:.5*a.v+.4*a.s+.1*a.q,Lynch:.5*a.g+.3*a.v+.2*a.q,Greenblatt:.5*a.v+.5*a.q,Klarman:.6*cl(a.mos*2.5)+.4*a.s};
+ const W={Buffett:.3,Graham:.2,Lynch:.1,Greenblatt:.15,Klarman:.25};let s=0;for(const k in W)s+=W[k]*a.L[k];a.score=100*(.8*s+.2*a.mac)-chal(a).pen});
+ const by=(x,y)=>y.score-x.score,ok=a=>a.scored&&(a.acc||a.dy<=DIV_MAX);OPP=A.filter(a=>ok(a)&&a.price<=a.buy).sort(by).slice(0,50);WAT=A.filter(a=>ok(a)&&a.price>a.buy).sort(by).slice(0,50);EXC=A.filter(a=>a.scored&&!ok(a)).sort(by);UNS=A.filter(a=>!a.scored)}
+/* ---- list views ---- */
+function row(a,i,w){return`<div class="row" data-t="${a.t}"><div class="rk">${i+1}</div><div class="mid"><b>${a.t} ${AL.has(a.t)?'🔔':''}</b><span>${a.n}${!a.scored?' · no fundamentals':a.acc?' · accumulating/no payout':' · pays '+a.dy.toFixed(1)+'%'}</span></div><div class="rt"><b>${a.cur} ${f(a.price)}</b><span class="${w?'m':'g'}">${w=='x'?`dividend ${a.dy.toFixed(1)}%, tax −${(a.dy*.3).toFixed(1)}%/yr`:w=='u'?'chart only':w?`buy ≤ ${a.cur} ${f(a.buy)} (${((a.price/a.buy-1)*100).toFixed(0)}% away)`:`margin of safety ${(a.mos*100).toFixed(0)}%`}</span></div><div class="sc">${a.scored?Math.round(a.score):'–'}</div></div>`}
+function render(){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==view));
+ const L=$('#list');
+ if(view=='x'){L.innerHTML=`<div class="card"><small>${EXC.length} assets left out: they pay a dividend above ${DIV_MAX}% (30% Belgian withholding) and no accumulating version exists. For broad exposure with no dividend tax, accumulating UCITS funds such as IWDA or VWCE are the usual substitute (different holdings, though).</small></div>`+EXC.map((a,i)=>row(a,i,'x')).join('')+`<div class="sub" style="padding:8px 14px">${UNS.length} assets without fundamentals on the free data plan (charts only, not ranked)</div>`+UNS.map((a,i)=>row(a,i,'u')).join('');return}
+ if(view=='m'){L.innerHTML=`<div class="card"><b>Liquidity hurdle</b><p>US M2 grew <b>${Number.isFinite(MAC.m2yoy)?MAC.m2yoy.toFixed(1)+'%':'n/a'}</b> over the last year (${MAC.m2asof||''}). Expected returns must beat this, not just CPI.</p><table>${[['Consumer prices (CPI)',MAC.cpiyoy,'% / yr'],['US house prices',MAC.homeyoy,'% / yr'],['S&P 500, 5y annualised',MAC.spx5y,'%'],['US 10y yield',MAC.y10,'%']].map(x=>`<tr><td>${x[0]}</td><td>${Number.isFinite(x[1])?x[1].toFixed(1)+' '+x[2].replace('% / yr','%'):'n/a'}</td></tr>`).join('')}</table><small>Sources: FRED and Yahoo Finance. Debt, yield curve and credit spreads are not tracked yet.</small></div><div class="card"><b>Macro fit by sector (preset regime: late cycle, high debt, ample liquidity)</b><table>${Object.entries(SEC).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`<tr><td>${k}</td><td>${Math.round(v*100)}/100</td></tr>`).join('')}</table></div><div class="card"><small>Score = 80% investor lenses (Buffett 30%, Graham 20%, Klarman 25%, Greenblatt 15%, Lynch 10%) + 20% macro fit. Entry price = intrinsic value minus 25% margin of safety. Expected returns are net of Belgian tax drag (30% on dividends, 30% on the bond part of bond funds); shares with a high dividend and no accumulating version go to the Excluded tab. Universe: large caps and UCITS ETFs/ETCs only (US-domiciled ETFs are mostly blocked for Belgian retail by PRIIPs).</small></div>`;return}
+ const l=view=='o'?OPP:WAT;L.innerHTML=`<div class="sub" style="padding:8px 14px">${view=='o'?`${l.length} assets at or below entry price, best first`:`${l.length} assets above entry price: waiting for the level shown`}<br>Max dividend yield when no accumulating version exists: <select id="dm">${[1,2,3,99].map(v=>`<option value="${v}" ${v==DIV_MAX?'selected':''}>${v==99?'no limit':v+'%'}</option>`).join('')}</select></div>`+l.map((a,i)=>row(a,i,view=='w')).join('')}
+$('#list').onchange=e=>{if(e.target.id=='dm'){DIV_MAX=+e.target.value;score();render()}};
+$('#list').onclick=e=>{const r=e.target.closest('.row');if(r)open(A.find(a=>a.t==r.dataset.t))};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{view=b.dataset.v;render();scrollTo(0,0)});
+/* ---- detail ---- */
+function why(a){const l=(a.price<=a.buy?OPP:WAT),k=l.indexOf(a);if(k<0)return`Excluded: it pays a ${a.dy.toFixed(1)}% dividend, taxed at 30% in Belgium, and no accumulating version is available.`;const T=Object.entries(a.L).sort((x,y)=>y[1]-x[1]).slice(0,2).map(x=>x[0]);let w='';
+ if(!a.etf&&a.lev>2.5)w=' Watch-out: leverage above 2.5× EBITDA.';if(a.etf&&a.vp>75)w=' Watch-out: valuation percentile is high.';
+ return`Ranks #${k+1} on this list, mainly on the ${T[0]} and ${T[1]} lenses. At ${a.cur} ${f(a.price)} it trades ${a.price<=a.buy?'below':'above'} the entry price of ${a.cur} ${f(a.buy)} (fair value estimate ${a.cur} ${f(a.iv)} less ${Math.round(a.mt*100)}% margin of safety). Expected return after Belgian tax is about ${a.net.toFixed(1)}% a year (${a.exp.toFixed(1)}% gross${a.dy>0?`, minus 30% tax on a ${a.dy.toFixed(1)}% dividend`:''}${a.bond?', minus Reynders tax on the bond part':''}) against the ${M2.toFixed(1)}% M2 hurdle (${(a.net-M2>=0?'+':'')+(a.net-M2).toFixed(1)} pts). Macro fit for ${a.sec}: ${Math.round(SEC[a.sec]*100)}/100 under the preset regime.${w}`}
+function open(a){const m=!a.scored?[]:a.etf?[['5y CAGR',a.cagr.toFixed(1)+'%'],['Max drawdown',a.dd.toFixed(0)+'%'],['Price percentile (2y)',a.vp.toFixed(0)]]:[['P/E',a.pe.toFixed(1)],['FCF yield',a.fcf.toFixed(1)+'%'],['ROIC',a.roic.toFixed(0)+'%'],['Debt / EBITDA',a.lev.toFixed(1)+'×'],['Assumed growth',a.eg.toFixed(1)+'%']];
+ if(a.scored)m.push(['Intrinsic value (est.)',a.cur+' '+f(a.iv)],['Entry price ('+Math.round(a.mt*100)+'% below fair value)',a.cur+' '+f(a.buy)],['Margin of safety now',(a.mos*100).toFixed(0)+'%'],['Dividend yield',a.dy.toFixed(1)+'%'+(a.acc?' (accumulating or none)':' (paid out, 30% tax)')],['Net return vs M2',(a.net-M2>=0?'+':'')+(a.net-M2).toFixed(1)+' pts'],['Macro fit',Math.round(a.mac*100)+'/100']);
+ const D=$('#det');D.style.display='block';D.innerHTML=`<div class="top"><div><b style="font-size:20px">${a.t}</b> <span class="m">${a.n}</span><br><b style="font-size:22px">${a.cur} ${f(a.price)}</b> <small>${a.sec}</small></div><button class="x" id="cls">Close</button></div><canvas id="cv"></canvas><div class="tf">${['1M','3M','6M','1Y','5Y','ALL'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="card"><small>Pinch or scroll to zoom, drag to pan, tap a candle for details. Blue dashed line = entry price, orange dotted lines = support levels (swing lows tested repeatedly).</small>${supports(a).length?'<br><b>Key support:</b> '+supports(a).map(s=>a.cur+' '+f(s.v)+' ('+s.n+'×)').join(', '):''}</div>${!a.scored?`<div class="card"><b>Chart only</b><br>The free data plan has no fundamentals for this asset, so it is not scored or ranked.</div>`:`<div class="card"><b>Why it is on the list</b><p>${why(a)}</p></div><div class="card"><b>Score ${Math.round(a.score)}/100 by investor lens</b><br>${Object.entries(a.L).map(([k,v])=>`${k} <span class="m">${Math.round(v*100)}</span><div class="bar"><i style="width:${v*100}%"></i></div>`).join('')}</div><div class="card"><b>Metrics</b><table>${m.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join('')}</table></div><div class="card"><button class="al ${AL.has(a.t)?'on':''}" id="alb">${AL.has(a.t)?'🔔 Alert on: '+a.cur+' '+f(a.buy):'🔔 Alert me at '+a.cur+' '+f(a.buy)}</button></div>`}<div class="card"><b>Independent cross-check</b><br>${chal(a).fl.length?chal(a).fl.map(x=>'• '+x).join('<br>'):'No objections found in the tracked sources'}<br><small>Planned sources: superinvestor 13F holdings, shareholder letters and annual reports, analyst targets, insider trades, X sentiment (lowest weight).</small></div><div class="card"><small>Belgium: 30% withholding on dividends (a small amount, about €833 in 2026, is exempt via your tax return), 10% tax on gains above €10,000 a year since 2026, 30% Reynders tax on the bond part of bond funds, and stock-exchange tax of 0.35% on shares or 0.12% / 1.32% on funds. Verify with your broker or a tax adviser.</small></div>`;
+ $('#cls').onclick=()=>{D.style.display='none';C=null;render()};if($('#alb'))$('#alb').onclick=async()=>{if(AL.has(a.t))AL.delete(a.t);else{AL.add(a.t);try{if('Notification' in window&&Notification.permission=='default')await Notification.requestPermission()}catch(e){}}saveAL();open(a)};
+ D.querySelectorAll('.tf button').forEach(b=>b.onclick=()=>setTF(b.dataset.k));C={a,cv:$('#cv')};bind(C.cv);setTF('1Y')}
+function supports(a){const b=a.bars,p=b[b.length-1].c,pv=[];for(let i=8;i<b.length-8;i++){let m=true;for(let j=1;j<=8;j++)if(b[i-j].l<b[i].l||b[i+j].l<b[i].l){m=false;break}if(m)pv.push(b[i].l)}
+ const z=[];pv.sort((x,y)=>x-y).forEach(v=>{const c=z.find(c=>Math.abs(c.v-v)/c.v<.025);if(c){c.v=(c.v*c.n+v)/(c.n+1);c.n++}else z.push({v,n:1})});
+ const r=z.filter(c=>c.v<p*.995),s2=r.filter(c=>c.n>=2);return(s2.length?s2:r).sort((x,y)=>y.v-x.v).slice(0,3)}
+/* ---- candlestick chart ---- */
+const TF={'1M':[22,1],'3M':[65,1],'6M':[130,1],'1Y':[260,1],'5Y':[260,5],'ALL':[62,21]};
+function setTF(k){const[n,kk]=TF[k];C.bars=agg(C.a.bars,kk);C.vn=Math.min(C.bars.length,n);C.vs=C.bars.length-C.vn;C.sel=null;document.querySelectorAll('.tf button').forEach(b=>b.classList.toggle('on',b.dataset.k==k));draw()}
+const clampV=()=>{C.vs=Math.max(-C.vn*.3,Math.min(C.bars.length-C.vn*.7,C.vs))};
+function zoom(z,fr){const nv=Math.max(8,Math.min(C.bars.length,C.vn*z));C.vs+=(C.vn-nv)*fr;C.vn=nv;clampV()}
+function bind(cv){const P=new Map();let d0=0,mv=0;
+ cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);P.set(e.pointerId,e.clientX);mv=0;if(P.size==2){const v=[...P.values()];d0=Math.abs(v[0]-v[1])}};
+ cv.onpointermove=e=>{if(!P.has(e.pointerId))return;const pv=P.get(e.pointerId);P.set(e.pointerId,e.clientX);const pw=cv.clientWidth-52;
+  if(P.size==1){const dx=e.clientX-pv;mv+=Math.abs(dx);C.vs-=dx/(pw/C.vn);clampV()}
+  else{const v=[...P.values()],d=Math.abs(v[0]-v[1]);if(d0>0&&d>0)zoom(d0/d,((v[0]+v[1])/2-cv.getBoundingClientRect().left)/pw);d0=d;mv=99}draw()};
+ cv.onpointerup=cv.onpointercancel=e=>{if(P.size==1&&mv<5){const pw=cv.clientWidth-52;C.sel=Math.max(0,Math.min(C.bars.length-1,Math.round((e.clientX-cv.getBoundingClientRect().left)/(pw/C.vn)-.5+C.vs)));draw()}P.delete(e.pointerId)};
+ cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY>0?1.12:.89,e.offsetX/(cv.clientWidth-52));draw()},{passive:false})}
+function draw(){if(!C)return;const{cv,bars}=C,dpr=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(cv.width!=W*dpr){cv.width=W*dpr;cv.height=H*dpr}
+ const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);const st=getComputedStyle(document.documentElement),col=n=>st.getPropertyValue(n).trim();
+ const PR=52,PB=18,PT=22,pw=W-PR,i0=Math.max(0,Math.floor(C.vs)),i1=Math.min(bars.length-1,Math.ceil(C.vs+C.vn));let lo=1e9,hi=-1e9;
+ for(let i=i0;i<=i1;i++){lo=Math.min(lo,bars[i].l);hi=Math.max(hi,bars[i].h)}const pd=(hi-lo)*.08||1;lo-=pd;hi+=pd;
+ const y=v=>PT+(hi-v)/(hi-lo)*(H-PT-PB),bw=pw/C.vn,x=i=>(i-C.vs+.5)*bw;g.font='10px system-ui';g.lineWidth=1;
+ for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,yy=y(v);g.strokeStyle=col('--ln');g.beginPath();g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.fillStyle=col('--mut');g.fillText(f(v),pw+4,yy+3)}
+ for(let i=i0;i<=i1;i++){const b=bars[i],xx=x(i);g.strokeStyle=g.fillStyle=b.c>=b.o?col('--up'):col('--dn');g.beginPath();g.moveTo(xx,y(b.h));g.lineTo(xx,y(b.l));g.stroke();g.fillRect(xx-bw*.35,y(Math.max(b.o,b.c)),Math.max(1,bw*.7),Math.max(1,Math.abs(y(b.o)-y(b.c))))}
+ const st5=Math.max(1,Math.round(C.vn/5));g.fillStyle=col('--mut');for(let i=Math.ceil(i0/st5)*st5;i<=i1;i+=st5)g.fillText(bars[i].d.toLocaleDateString(undefined,C.vn>150?{month:'short',year:'2-digit'}:{day:'numeric',month:'short'}),x(i)-14,H-4);
+ const by=y(C.a.buy);if(by>PT&&by<H-PB){g.setLineDash([5,4]);g.strokeStyle=col('--ac');g.beginPath();g.moveTo(0,by);g.lineTo(pw,by);g.stroke();g.setLineDash([]);g.fillStyle=col('--ac');g.fillText('entry',4,by-3)}
+ supports(C.a).forEach((s,k)=>{const sy=y(s.v);if(sy>PT&&sy<H-PB){g.setLineDash([2,3]);g.strokeStyle=g.fillStyle=col('--wn');g.beginPath();g.moveTo(0,sy);g.lineTo(pw,sy);g.stroke();g.setLineDash([]);g.fillText('S'+(k+1)+' '+f(s.v),4,sy-3)}});
+ if(C.sel!=null&&C.sel>=i0&&C.sel<=i1){const b=bars[C.sel],xx=x(C.sel);g.strokeStyle=col('--mut');g.beginPath();g.moveTo(xx,PT);g.lineTo(xx,H-PB);g.stroke()}
+ const b=bars[C.sel??bars.length-1];g.fillStyle=col('--tx');g.fillText(`${b.d.toLocaleDateString()}  O ${f(b.o)}  H ${f(b.h)}  L ${f(b.l)}  C ${f(b.c)}`,6,13)}
+addEventListener('resize',draw);
+/* ---- refresh, alerts, pull-down ---- */
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',4500)}
+function checkAlerts(){A.filter(a=>AL.has(a.t)&&a.price<=a.buy).forEach(a=>{const m=`${a.t} is at ${a.cur} ${f(a.price)}, at or below your entry price ${a.cur} ${f(a.buy)}`;toast('🔔 '+m);try{if('Notification' in window&&Notification.permission=='granted')new Notification('Value Compass',{body:m})}catch(e){}})}
+let busy=false;async function refresh(){if(busy)return;busy=true;$('#upd').textContent='Refreshing…';
+ try{await load();score();render();if(C)draw();checkAlerts();$('#upd').textContent='Prices as of '+new Date(META.updated).toLocaleString([],{dateStyle:'short',timeStyle:'short'})+' · end of day'}
+ catch(e){$('#upd').textContent=/404/.test(e.message)?'No data yet: run the “Update data” workflow once (see README)':'Could not load data: '+e.message}busy=false}
+let ty=null;addEventListener('touchstart',e=>{ty=document.scrollingElement.scrollTop<=0&&$('#det').style.display!='block'?e.touches[0].clientY:null},{passive:true});
+addEventListener('touchmove',e=>{if(ty==null)return;const d=e.touches[0].clientY-ty;if(d>0){$('#ptr').style.height=Math.min(d*.5,60)+'px';$('#ptr').textContent=d>110?'Release to refresh':'↓ Pull to refresh'}},{passive:true});
+addEventListener('touchend',e=>{if(ty==null)return;const d=e.changedTouches[0].clientY-ty;$('#ptr').style.height=0;if(d>110)refresh();ty=null});
+refresh();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>

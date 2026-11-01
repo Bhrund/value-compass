@@ -1,0 +1,480 @@
+[
+{
+"t": "BRK.B",
+"n": "Berkshire Hathaway B",
+"sec": "Financials",
+"y": "BRK-B",
+"fmp": "BRK-B",
+"etf": false
+},
+{
+"t": "JNJ",
+"n": "Johnson & Johnson",
+"sec": "Health Care",
+"y": "JNJ",
+"fmp": "JNJ",
+"etf": false
+},
+{
+"t": "PG",
+"n": "Procter & Gamble",
+"sec": "Staples",
+"y": "PG",
+"fmp": "PG",
+"etf": false
+},
+{
+"t": "KO",
+"n": "Coca-Cola",
+"sec": "Staples",
+"y": "KO",
+"fmp": "KO",
+"etf": false
+},
+{
+"t": "PEP",
+"n": "PepsiCo",
+"sec": "Staples",
+"y": "PEP",
+"fmp": "PEP",
+"etf": false
+},
+{
+"t": "WMT",
+"n": "Walmart",
+"sec": "Staples",
+"y": "WMT",
+"fmp": "WMT",
+"etf": false
+},
+{
+"t": "COST",
+"n": "Costco",
+"sec": "Staples",
+"y": "COST",
+"fmp": "COST",
+"etf": false
+},
+{
+"t": "MCD",
+"n": "McDonald’s",
+"sec": "Discretionary",
+"y": "MCD",
+"fmp": "MCD",
+"etf": false
+},
+{
+"t": "HD",
+"n": "Home Depot",
+"sec": "Discretionary",
+"y": "HD",
+"fmp": "HD",
+"etf": false
+},
+{
+"t": "MSFT",
+"n": "Microsoft",
+"sec": "Technology",
+"y": "MSFT",
+"fmp": "MSFT",
+"etf": false
+},
+{
+"t": "GOOGL",
+"n": "Alphabet",
+"sec": "Technology",
+"y": "GOOGL",
+"fmp": "GOOGL",
+"etf": false
+},
+{
+"t": "AAPL",
+"n": "Apple",
+"sec": "Technology",
+"y": "AAPL",
+"fmp": "AAPL",
+"etf": false
+},
+{
+"t": "V",
+"n": "Visa",
+"sec": "Financials",
+"y": "V",
+"fmp": "V",
+"etf": false
+},
+{
+"t": "MA",
+"n": "Mastercard",
+"sec": "Financials",
+"y": "MA",
+"fmp": "MA",
+"etf": false
+},
+{
+"t": "JPM",
+"n": "JPMorgan Chase",
+"sec": "Financials",
+"y": "JPM",
+"fmp": "JPM",
+"etf": false
+},
+{
+"t": "BLK",
+"n": "BlackRock",
+"sec": "Financials",
+"y": "BLK",
+"fmp": "BLK",
+"etf": false
+},
+{
+"t": "SPGI",
+"n": "S&P Global",
+"sec": "Financials",
+"y": "SPGI",
+"fmp": "SPGI",
+"etf": false
+},
+{
+"t": "MCO",
+"n": "Moody’s",
+"sec": "Financials",
+"y": "MCO",
+"fmp": "MCO",
+"etf": false
+},
+{
+"t": "XOM",
+"n": "Exxon Mobil",
+"sec": "Energy",
+"y": "XOM",
+"fmp": "XOM",
+"etf": false
+},
+{
+"t": "CVX",
+"n": "Chevron",
+"sec": "Energy",
+"y": "CVX",
+"fmp": "CVX",
+"etf": false
+},
+{
+"t": "UNH",
+"n": "UnitedHealth",
+"sec": "Health Care",
+"y": "UNH",
+"fmp": "UNH",
+"etf": false
+},
+{
+"t": "ABBV",
+"n": "AbbVie",
+"sec": "Health Care",
+"y": "ABBV",
+"fmp": "ABBV",
+"etf": false
+},
+{
+"t": "MRK",
+"n": "Merck & Co",
+"sec": "Health Care",
+"y": "MRK",
+"fmp": "MRK",
+"etf": false
+},
+{
+"t": "CAT",
+"n": "Caterpillar",
+"sec": "Industrials",
+"y": "CAT",
+"fmp": "CAT",
+"etf": false
+},
+{
+"t": "DE",
+"n": "Deere",
+"sec": "Industrials",
+"y": "DE",
+"fmp": "DE",
+"etf": false
+},
+{
+"t": "HON",
+"n": "Honeywell",
+"sec": "Industrials",
+"y": "HON",
+"fmp": "HON",
+"etf": false
+},
+{
+"t": "LIN",
+"n": "Linde",
+"sec": "Materials",
+"y": "LIN",
+"fmp": "LIN",
+"etf": false
+},
+{
+"t": "ADP",
+"n": "Automatic Data Processing",
+"sec": "Technology",
+"y": "ADP",
+"fmp": "ADP",
+"etf": false
+},
+{
+"t": "CL",
+"n": "Colgate-Palmolive",
+"sec": "Staples",
+"y": "CL",
+"fmp": "CL",
+"etf": false
+},
+{
+"t": "ASML",
+"n": "ASML",
+"sec": "Technology",
+"y": "ASML.AS",
+"fmp": "ASML",
+"etf": false
+},
+{
+"t": "SAP",
+"n": "SAP",
+"sec": "Technology",
+"y": "SAP.DE",
+"fmp": "SAP",
+"etf": false
+},
+{
+"t": "NESN",
+"n": "Nestlé",
+"sec": "Staples",
+"y": "NESN.SW",
+"fmp": null,
+"etf": false
+},
+{
+"t": "ROG",
+"n": "Roche",
+"sec": "Health Care",
+"y": "ROG.SW",
+"fmp": null,
+"etf": false
+},
+{
+"t": "NOVN",
+"n": "Novartis",
+"sec": "Health Care",
+"y": "NOVN.SW",
+"fmp": "NVS",
+"etf": false
+},
+{
+"t": "MC",
+"n": "LVMH",
+"sec": "Discretionary",
+"y": "MC.PA",
+"fmp": null,
+"etf": false
+},
+{
+"t": "OR",
+"n": "L’Oréal",
+"sec": "Staples",
+"y": "OR.PA",
+"fmp": null,
+"etf": false
+},
+{
+"t": "SU",
+"n": "Schneider Electric",
+"sec": "Industrials",
+"y": "SU.PA",
+"fmp": null,
+"etf": false
+},
+{
+"t": "AI",
+"n": "Air Liquide",
+"sec": "Materials",
+"y": "AI.PA",
+"fmp": null,
+"etf": false
+},
+{
+"t": "ABI",
+"n": "AB InBev",
+"sec": "Staples",
+"y": "ABI.BR",
+"fmp": "BUD",
+"etf": false
+},
+{
+"t": "KBC",
+"n": "KBC Group",
+"sec": "Financials",
+"y": "KBC.BR",
+"fmp": null,
+"etf": false
+},
+{
+"t": "SHEL",
+"n": "Shell",
+"sec": "Energy",
+"y": "SHEL.L",
+"fmp": "SHEL",
+"etf": false
+},
+{
+"t": "TTE",
+"n": "TotalEnergies",
+"sec": "Energy",
+"y": "TTE.PA",
+"fmp": "TTE",
+"etf": false
+},
+{
+"t": "SIE",
+"n": "Siemens",
+"sec": "Industrials",
+"y": "SIE.DE",
+"fmp": null,
+"etf": false
+},
+{
+"t": "ALV",
+"n": "Allianz",
+"sec": "Financials",
+"y": "ALV.DE",
+"fmp": null,
+"etf": false
+},
+{
+"t": "NVO",
+"n": "Novo Nordisk",
+"sec": "Health Care",
+"y": "NVO",
+"fmp": "NVO",
+"etf": false
+},
+{
+"t": "RIO",
+"n": "Rio Tinto",
+"sec": "Materials",
+"y": "RIO.L",
+"fmp": "RIO",
+"etf": false
+},
+{
+"t": "BHP",
+"n": "BHP Group",
+"sec": "Materials",
+"y": "BHP",
+"fmp": "BHP",
+"etf": false
+},
+{
+"t": "ULVR",
+"n": "Unilever",
+"sec": "Staples",
+"y": "ULVR.L",
+"fmp": "UL",
+"etf": false
+},
+{
+"t": "DGE",
+"n": "Diageo",
+"sec": "Staples",
+"y": "DGE.L",
+"fmp": "DEO",
+"etf": false
+},
+{
+"t": "AZN",
+"n": "AstraZeneca",
+"sec": "Health Care",
+"y": "AZN.L",
+"fmp": "AZN",
+"etf": false
+},
+{
+"t": "MUV2",
+"n": "Munich Re",
+"sec": "Financials",
+"y": "MUV2.DE",
+"fmp": null,
+"etf": false
+},
+{
+"t": "IWDA",
+"n": "iShares Core MSCI World UCITS",
+"sec": "Equity broad",
+"y": "IWDA.AS",
+"etf": true,
+"acc": true,
+"dy": 0,
+"bond": false
+},
+{
+"t": "VWCE",
+"n": "Vanguard FTSE All-World UCITS",
+"sec": "Equity broad",
+"y": "VWCE.DE",
+"etf": true,
+"acc": true,
+"dy": 0,
+"bond": false
+},
+{
+"t": "SXR8",
+"n": "iShares Core S&P 500 UCITS",
+"sec": "Equity broad",
+"y": "SXR8.DE",
+"etf": true,
+"acc": true,
+"dy": 0,
+"bond": false
+},
+{
+"t": "SGLN",
+"n": "iShares Physical Gold ETC",
+"sec": "Commodities",
+"y": "SGLN.L",
+"etf": true,
+"acc": true,
+"dy": 0,
+"bond": false
+},
+{
+"t": "SSLN",
+"n": "iShares Physical Silver ETC",
+"sec": "Commodities",
+"y": "SSLN.L",
+"etf": true,
+"acc": true,
+"dy": 0,
+"bond": false
+},
+{
+"t": "IWDP",
+"n": "iShares Dev. Markets Property UCITS",
+"sec": "Real assets",
+"y": "IWDP.L",
+"etf": true,
+"acc": false,
+"dy": 3.8,
+"bond": false
+},
+{
+"t": "IBCI",
+"n": "iShares € Inflation Linked Govt Bond",
+"sec": "Inflation bonds",
+"y": "IBCI.DE",
+"etf": true,
+"acc": true,
+"dy": 0,
+"bond": true
+}
+]
