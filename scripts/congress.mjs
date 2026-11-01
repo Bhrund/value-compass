@@ -43,22 +43,29 @@ export function screen(sym, who, P, F) { // returns {ok,...} or {reject}
   const key = (band === 'green' ? 3000 : band === 'orange' ? 2000 : 1000) + entries.length * 100 + (30 - Math.max(-30, Math.min(30, dist))) + (checked ? 20 : 0) + (F ? Math.min(F.roic, 30) / 3 : 0);
   return { ok: true, last, entries, avg, dist, band, dd, cagr3, checked, F, why, key };
 }
+const FC = { ...(prev?.fc || {}) }; let fmpCalls = 0; const MAXF = 120; // FMP free plan: 250 calls a day, shared with the main job
+async function fund(sym) { // fundamentals cached for 7 days, with a daily call budget
+  const c = FC[sym]; if (c && Date.now() - c.at < 7 * 864e5) return c; if (fmpCalls >= MAXF) return null;
+  const t0 = Date.now(), F = await fundamentals(sym); if (F.at >= t0) { fmpCalls += 2; await sleep(300); } FC[sym] = F; return F;
+}
 export async function main() {
   const rows = [], used = {};
-  for (const m of CFG.members) { try { const t = await trades(m); used[m] = t.length; rows.push(...t); } catch (e) { used[m] = 'failed: ' + e.message; console.warn('trades FAILED', m, e.message); } await sleep(300); }
+  for (const m of CFG.members) { try { const t = await trades(m), ds = t.map(x => x.date).filter(Boolean).sort(); used[m] = { rows: t.length, from: ds[0], to: ds.at(-1), capHit: t.length >= 1000 }; rows.push(...t); if (t.length >= 1000) console.warn('possible truncation (1000 rows) for', m); } catch (e) { used[m] = 'failed: ' + e.message; console.warn('trades FAILED', m, e.message); } await sleep(300); }
   const by = {};
   for (const t of rows) if (/purchase|buy/.test(t.type) && /^[A-Z]{1,5}(\.[A-Z])?$/.test(t.ticker) && t.date) ((by[t.ticker] ??= {})[t.who] ??= []).push(t.date);
-  const cands = Object.entries(by).filter(([, w]) => Object.keys(w).length >= (CFG.min || 2)), out = [], rej = {};
+  const all = Object.entries(by).filter(([, w]) => Object.keys(w).length >= (CFG.min || 2)).sort((a, b) => Object.keys(b[1]).length - Object.keys(a[1]).length);
+  const cands = all.slice(0, CFG.maxCandidates || 100), out = [], rej = {};
+  const starts = Object.values(used).map(u => u.from).filter(Boolean).sort(); console.log(`earliest trade date returned: ${starts[0] || 'none'} (asked for ${CFG.days} days); ${all.length} candidates, checking ${cands.length}`);
   for (const [t, who] of cands) {
     try {
       const P = await prices(t.replace('.', '-')); await sleep(250); let F = null;
-      if (FMP) { try { F = await fundamentals(t.replace('.', '-')); if (![F.roic, F.fcf, F.lev].every(Number.isFinite)) F = null; } catch (e) { F = null; } }
+      if (FMP) { try { F = await fund(t.replace('.', '-')); if (F && ![F.roic, F.fcf, F.lev].every(Number.isFinite)) F = null; } catch (e) { F = null; } }
       const r = screen(t, who, P, F); if (!r.ok) { rej[r.reject] = (rej[r.reject] || 0) + 1; continue; }
       out.push({ t, n: P.name, cur: P.cur, price: r.last, entries: r.entries, avg: rd(r.avg), dist: +r.dist.toFixed(1), band: r.band, dd: r.dd, cagr3: r.cagr3, checked: r.checked, why: r.why, key: r.key, bars: P.bars.slice(-260) });
     } catch (e) { rej['no price data'] = (rej['no price data'] || 0) + 1; console.warn('price FAILED', t, e.message); }
   }
   out.sort((a, b) => b.key - a.key);
-  fs.writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), days: CFG.days, trades: used, candidates: cands.length, rejected: rej, list: out.slice(0, 20).map(({ key, ...x }) => x) }));
+  fs.writeFileSync(OUT, JSON.stringify({ updated: new Date().toISOString(), days: CFG.days, trades: used, fc: Object.fromEntries(Object.entries(FC).filter(([, v]) => Date.now() - v.at < 30 * 864e5)), candidates: all.length, checked: cands.length, rejected: rej, list: out.slice(0, 20).map(({ key, ...x }) => x) }));
   const top = out.slice(0, 20), seen = new Set((prev?.list || []).map(x => x.t));
   const fresh = prev ? top.filter(x => !seen.has(x.t)) : []; // no alerts on the very first run
   if (TOPIC) for (const x of fresh) await fetch('https://ntfy.sh/' + TOPIC, { method: 'POST', headers: { Title: `${x.t} is new on the Congress list`, Tags: 'classical_building' },
