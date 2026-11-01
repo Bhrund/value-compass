@@ -12,7 +12,6 @@ jobs:
         with: { node-version: 20 }
       - run: node scripts/update.mjs
         env: { FMP_KEY: '${{ secrets.FMP_KEY }}', NTFY_TOPIC: '${{ secrets.NTFY_TOPIC }}' }
-        env: { FINNHUB_KEY: '${{ secrets.FINNHUB_KEY }}', NTFY_TOPIC: '${{ secrets.NTFY_TOPIC }}' }
       - run: node scripts/congress.mjs
         continue-on-error: true
         env: { FMP_KEY: '${{ secrets.FMP_KEY }}', CONGRESS_KEY: '${{ secrets.CONGRESS_KEY }}', NTFY_TOPIC: '${{ secrets.NTFY_TOPIC }}' }
