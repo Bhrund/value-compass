@@ -1,1 +1,33 @@
-{"mute": [], "divMax": 2}
+{
+ "mute": [],
+ "divMax": 2,
+ "congress": {
+  "url": "https://www.bargo.ai/free-apis/congress/v1/trades",
+  "memberParam": "member",
+  "fromParam": "from_date",
+  "days": 90,
+  "members": [
+   "Nancy Pelosi",
+   "Brian Higgins",
+   "Dan Crenshaw",
+   "Ro Khanna",
+   "Michael McCaul",
+   "Donald Trump",
+   "Warren Davidson",
+   "Donald Norcross",
+   "Terri Sewell",
+   "Bryan Steil",
+   "Alex Padilla",
+   "Nick LaLota",
+   "Rick Scott",
+   "Michael Guest",
+   "Tom McClintock",
+   "Dwight Evans",
+   "Lisa McClain",
+   "Pete Ricketts",
+   "Josh Gottheimer",
+   "Jared Moskowitz"
+  ],
+  "min": 2
+ }
+}
